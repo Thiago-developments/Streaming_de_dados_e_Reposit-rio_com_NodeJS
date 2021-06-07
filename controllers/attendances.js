@@ -2,7 +2,8 @@ const Attendance = require("../models/attendances");
 
 module.exports = (app) => {
   app.get("/atendimentos", (req, res) => {
-    Attendance.list(res)
+    Attendance.list().then(results => res.status(200).json(results))
+      .catch(errors => res.status(400).json(errors))
   });
   
   app.get("/atendimentos/:id", (req, res) => {
@@ -13,7 +14,10 @@ module.exports = (app) => {
 
   app.post("/atendimentos", (req, res) => {
     const attendance = req.body
-    Attendance.add(attendance, res)
+    Attendance.add(attendance)
+    .then(registeredAttendance => 
+      res.status(201).json(registeredAttendance))
+    .catch(errors => res.status(400).json(errors))
   });
 
   app.patch("/atendimentos/:id", (req,res)=>{

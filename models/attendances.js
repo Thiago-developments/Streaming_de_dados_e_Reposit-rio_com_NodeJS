@@ -2,59 +2,63 @@ const axios = require("axios");
 const { json } = require("body-parser");
 const moment = require("moment");
 const connection = require("../infrastructure/database/connection");
+const repository = require("../repositories/attendance")
 class Attendance {
-  add(attendance, res) {
+  constructor(){
+    this.validDate = (date, creationDate) => moment(date).isSameOrAfter(creationDate);
+    this.validCustomer = (length) => length >= 5
+    this.validate = parameters => this.validations.filter(field => {
+      const {name} = field
+      const parameter = parameters[name]
+
+      return !field.validate(parameter)
+    })
+    this.validations = [
+      {
+        name:'date',
+        valid: this.validDate ,
+        message: 'Date must be equal or bigger than current date'
+      },
+      {
+        name:'customer',
+        valid : this.validCustomer,
+        message: 'Customer must have at least five characters'
+      }
+    ]
+    
+  }
+  add(attendance) {
     const creationDate = moment().format('YYYY-MM-DD HH:MM:SS');
     const date = moment(attendance.date, 'DD/MM/YYYY').format(
       'YYYY-MM-DD HH:MM:SS'
     );
 
-    const validDate = moment(date).isSameOrAfter(creationDate);
-    const validCustomer = attendance.customer.length >= 5
+    
 
-    const validations = [
-      {
-        name:'date',
-        valid: validDate ,
-        message: 'Date must be equal or bigger than current date'
-      },
-      {
-        name:'customer',
-        valid : validCustomer,
-        message: 'Customer must have at least five characters'
-      }
-    ]
-    const errors = validations.filter(field => !field.valid)
+    const parameters = {
+      date: {date, creationDate},
+      customer: {length: attendance.customer.length}
+    }
+    const errors = this.validate(parameters)
 
     if (errors.length) {
-      res.status(400).json(errors)
+      return new Promise ((resolve, reject)=> reject(errors))
     }else{
       const datedAttendance = { ...attendance, creationDate, date };
     
-      const sql = 'INSERT INTO Attendance SET ? '
-
-      connection.query(sql, datedAttendance, (erro, results) => {
-        if (erro) {
-          res.status(400).json(erro);
-        } else {
-          res.status(201).json(attendance);
-      }
-    });
+      return repository.add(datedAttendance)
+        .then(results => {
+          const id = results.insertId
+          return ({...attendance, id})
+        }) 
+      
     }
 
     
   }
   
-  list(res){
-    const sql = 'SELECT * FROM Attendance'
-
-    connection.query(sql, (erro, results) =>{
-      if (erro) {
-        res.status(400).json(erro)
-      }else{
-        res.status(200).json(results)
-      }
-    })
+  list(){
+    return repository.list()
   }
 
   searchById(id, res){
