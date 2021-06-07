@@ -1,7 +1,7 @@
 const axios = require("axios");
 const { json } = require("body-parser");
 const moment = require("moment");
-const connection = require("../infrastructure/connection");
+const connection = require("../infrastructure/database/connection");
 class Attendance {
   add(attendance, res) {
     const creationDate = moment().format('YYYY-MM-DD HH:MM:SS');
